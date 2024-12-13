@@ -1,0 +1,58 @@
+create a physics simulation in java script of container full of gas molecules. The molecules should be simple, diatomic helium gas molecules.  Also in addition to collision physics also add  corrections for van der walls forces and apply distortion to the mechanism of the molecules based on these forces
+
+create a simple 2D demonstration of the above in java script to the level of complexity that you can code
+
+using the mass of the helium nucleus and the speeds of the gas molecules have label that output the temperature of the box at any instant. Use statistical mechanics to calculate the temperature
+
+update above code to add the label in html below the gas container To the right of the gas container have a small box that explains the kinetic theory of gases and have the relevant equation below it
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gas Molecule Simulation</title>
+    <style>
+        body, html { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #e0f7fa; }
+        canvas { background: #81d4fa; box-shadow: 0 0 20px rgba(0, 0, 0, 0.7); border-radius: 10px; width: 800px; height: 600px; }
+        #controls { margin-top: 20px; display: flex; justify-content: space-around; flex-wrap: wrap; }
+        .control-button { padding: 10px 20px; border-radius: 5px; background-color: #0288d1; color: #fff; cursor: pointer; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div>
+        <canvas id="simulation"></canvas>
+        <div id="temperature">Temperature: 0 K</div>
+        <div id="controls">
+            <button id="startButton" class="control-button">Start</button>
+            <button id="stopButton" class="control-button" disabled>Stop</button>
+            <button id="resetButton" class="control-button">Reset</button>
+            <input type="range" id="speedControl" min="1" max="200" value="100">
+            <input type="range" id="sizeControl" min="2" max="20" value="5">
+            <input type="color" id="colorPicker" value="#ff0000">
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('simulation'), ctx = canvas.getContext('2d'), temperatureLabel = document.getElementById('temperature');
+        let molecules = [], animationId, isRunning = false, moleculeRadius = 5, moleculeSpeed = 100, moleculeColor = '#ff0000', numMolecules = 20;
+        const heliumMass = 6.646e-27, kB = 1.38e-23;
+        class Molecule { 
+            constructor(x, y, vx, vy) { this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.radius = moleculeRadius; this.color = moleculeColor; }
+            draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); }
+            update() { this.x += this.vx; this.y += this.vy; if (this.x + this.radius > canvas.width || this.x - this.radius < 0) this.vx *= -1; if (this.y + this.radius > canvas.height || this.y - this.radius < 0) this.vy *= -1; for (let i = 0; i < molecules.length; i++) { if (molecules[i] !== this) { const dx = molecules[i].x - this.x, dy = molecules[i].y - this.y, distance = Math.sqrt(dx * dx + dy * dy); if (distance < this.radius * 2) { const angle = Math.atan2(dy, dx), ax = (this.x + Math.cos(angle) * this.radius * 2 - molecules[i].x) * 0.05, ay = (this.y + Math.sin(angle) * this.radius * 2 - molecules[i].y) * 0.05; this.vx -= ax; this.vy -= ay; molecules[i].vx += ax; molecules[i].vy += ay; } } } }
+            getKineticEnergy() { return 0.5 * heliumMass * (this.vx * this.vx + this.vy * this.vy); }
+        }
+        function createMolecules() { molecules = []; for (let i = 0; i < numMolecules; i++) molecules.push(new Molecule(Math.random() * (canvas.width - moleculeRadius * 2) + moleculeRadius, Math.random() * (canvas.height - moleculeRadius * 2) + moleculeRadius, (Math.random() - 0.5) * moleculeSpeed, (Math.random() - 0.5) * moleculeSpeed)); }
+        function calculateTemperature() { return (2 * molecules.reduce((sum, molecule) => sum + molecule.getKineticEnergy(), 0) / molecules.length) / (3 * kB); }
+        function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); molecules.forEach(molecule => { molecule.update(); molecule.draw(); }); temperatureLabel.textContent = `Temperature: ${calculateTemperature().toFixed(2)} K`; animationId = requestAnimationFrame(animate); }
+        document.getElementById('startButton').addEventListener('click', () => { if (!isRunning) { isRunning = true; animate(); document.getElementById('startButton').disabled = true; document.getElementById('stopButton').disabled = false; } });
+        document.getElementById('stopButton').addEventListener('click', () => { if (isRunning) { isRunning = false; cancelAnimationFrame(animationId); document.getElementById('startButton').disabled = false; document.getElementById('stopButton').disabled = true; } });
+        document.getElementById('resetButton').addEventListener('click', () => { cancelAnimationFrame(animationId); isRunning = false; createMolecules(); temperatureLabel.textContent = 'Temperature: 0 K'; document.getElementById('startButton').disabled = false; document.getElementById('stopButton').disabled = true; });
+        document.getElementById('speedControl').addEventListener('input', e => { moleculeSpeed = parseInt(e.target.value); createMolecules(); if (isRunning) animate(); });
+        document.getElementById('sizeControl').addEventListener('input', e => { moleculeRadius = parseInt(e.target.value); molecules.forEach(molecule => { molecule.radius = moleculeRadius; }); if (isRunning) animate(); });
+        document.getElementById('colorPicker').addEventListener('input', e => { moleculeColor = e.target.value; molecules.forEach(molecule => { molecule.color = moleculeColor; }); if (isRunning) animate(); });
+        createMolecules();
+    </script>
+</body>
+</html>
